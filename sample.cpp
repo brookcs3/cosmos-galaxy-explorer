@@ -25,12 +25,63 @@
 #include <sstream>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+#define POPEN _popen
+#define PCLOSE _pclose
+#else
+#define POPEN popen
+#define PCLOSE pclose
+#endif
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "lib/miniaudio.h"
 #include "lib/json.hpp"
 
 using json = nlohmann::json;
+
+// ─── Runtime Path Resolution ─────────────────────────────────────────
+
+static std::string getExecutableDir() {
+#ifdef _WIN32
+    char path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    return std::filesystem::path(path).parent_path().string();
+#elif __APPLE__
+    char path[1024];
+    uint32_t size = sizeof(path);
+    if (_NSGetExecutablePath(path, &size) == 0) {
+        return std::filesystem::path(path).parent_path().string();
+    }
+    return ".";
+#else
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    return std::filesystem::path(std::string(result, (count > 0) ? count : 0)).parent_path().string();
+#endif
+}
+
+static std::string getResourcesDir() {
+    std::string exeDir = getExecutableDir();
+#ifdef __APPLE__
+    // If inside an .app bundle, resources are in Contents/Resources
+    if (exeDir.find("Contents/MacOS") != std::string::npos) {
+        return std::filesystem::path(exeDir).parent_path().string() + "/Resources";
+    }
+#endif
+    // On Windows/Linux, or unpackaged Mac, resources are next to the executable
+    return exeDir;
+}
+
+// Global resource root (set once in main, used everywhere)
+static std::string gResourcesDir;
 
 // ─── Data Structures ─────────────────────────────────────────────────
 
@@ -201,9 +252,6 @@ static char gSearchBuf[256] = {};
 static int gNextInjectedId = 100000;  // synthetic IDs above real cosmos_id range (~50K max)
 static bool gAnalyzeRunning = false;
 static std::string gAnalyzeStatus;
-static const char* ANALYZE_SCRIPT =
-    "/Users/cameronbrooks/Server/AI-STEM-Separator-Mad-Scientist-Edition/"
-    "ml-ops/galaxy-semantic-backbone/analyze_single.py";
 
 // ─── Shader Utilities ────────────────────────────────────────────────
 
@@ -766,31 +814,73 @@ static void fadeOutSound(float durationSec) {
 // ─── Sample Injection (hot-load via analyze_single.py) ──────────────
 
 static std::string openFileDialog() {
-    FILE* fp = popen(
+#ifdef _WIN32
+    char filename[MAX_PATH] = {0};
+    OPENFILENAMEA ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = "Audio Files\0*.wav;*.WAV\0All Files\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+    ofn.lpstrDefExt = "wav";
+    if (GetOpenFileNameA(&ofn)) return std::string(filename);
+    return "";
+#else
+    FILE* fp = POPEN(
         "osascript -e 'set f to POSIX path of (choose file of type {\"wav\", \"WAV\", \"public.audio\"} "
         "with prompt \"Select audio file to inject\")' 2>/dev/null", "r");
     if (!fp) return "";
     char buf[4096];
     std::string result;
     while (fgets(buf, sizeof(buf), fp)) result += buf;
-    pclose(fp);
-    // Trim trailing newline
+    PCLOSE(fp);
     while (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
         result.pop_back();
     return result;
+#endif
 }
 
 static void injectSampleFromFile(const std::string& wavPath) {
     gAnalyzeRunning = true;
-    gAnalyzeStatus = "Analyzing: " + wavPath.substr(wavPath.rfind('/') + 1);
+    // Extract filename cross-platform
+    std::string basename = std::filesystem::path(wavPath).filename().string();
+    gAnalyzeStatus = "Analyzing: " + basename;
     fprintf(stderr, "Injecting sample: %s\n", wavPath.c_str());
+
+    // Resolve bundled python and script paths
+#ifdef _WIN32
+    std::string pythonExe = gResourcesDir + "\\python\\python.exe";
+    std::string scriptPath = gResourcesDir + "\\backend\\analyze_single.py";
+    std::string sep = "\\";
+#else
+    std::string pythonExe = gResourcesDir + "/python/bin/python3";
+    std::string scriptPath = gResourcesDir + "/backend/analyze_single.py";
+    std::string sep = "/";
+#endif
+
+    // Fall back to system python if bundled python not found
+    if (!std::filesystem::exists(pythonExe)) {
+        fprintf(stderr, "Bundled python not found at %s, falling back to system python3\n", pythonExe.c_str());
+        pythonExe = "python3";
+    }
+    if (!std::filesystem::exists(scriptPath)) {
+        fprintf(stderr, "Backend script not found at %s, falling back to system path\n", scriptPath.c_str());
+        scriptPath = "analyze_single.py";
+    }
 
     // Shell out to analyze_single.py
     char cmd[8192];
-    snprintf(cmd, sizeof(cmd), "python3 \"%s\" \"%s\" 2>/dev/null",
-             ANALYZE_SCRIPT, wavPath.c_str());
+#ifdef _WIN32
+    snprintf(cmd, sizeof(cmd), "\"\"%s\" \"%s\" \"%s\" 2>NUL\"",
+             pythonExe.c_str(), scriptPath.c_str(), wavPath.c_str());
+#else
+    snprintf(cmd, sizeof(cmd), "\"%s\" \"%s\" \"%s\" 2>/dev/null",
+             pythonExe.c_str(), scriptPath.c_str(), wavPath.c_str());
+#endif
 
-    FILE* fp = popen(cmd, "r");
+    FILE* fp = POPEN(cmd, "r");
     if (!fp) {
         gAnalyzeStatus = "ERROR: Failed to run analyze_single.py";
         gAnalyzeRunning = false;
@@ -801,7 +891,7 @@ static void injectSampleFromFile(const std::string& wavPath) {
     std::string output;
     char buf[4096];
     while (fgets(buf, sizeof(buf), fp)) output += buf;
-    int status = pclose(fp);
+    int status = PCLOSE(fp);
 
     if (status != 0 || output.empty()) {
         gAnalyzeStatus = "ERROR: analyze_single.py failed (exit " + std::to_string(status) + ")";
@@ -845,9 +935,8 @@ static void injectSampleFromFile(const std::string& wavPath) {
         p.familyName = "Unknown";
     }
 
-    // Extract filename for display name
-    p.name = wavPath.substr(wavPath.rfind('/') + 1);
-    if (p.name.size() > 4) p.name = p.name.substr(0, p.name.size() - 4);  // strip .wav
+    // Extract filename for display name (cross-platform)
+    p.name = std::filesystem::path(wavPath).stem().string();
 
     // Map heads: crest=0, wet_dry=1, sat_clean=2, centroid=3, by_inst=4
     const char* headKeys[] = { "crest", "wet_dry", "sat_clean", "centroid", "by_inst" };
@@ -1799,8 +1888,9 @@ static void onWindowResize(GLFWwindow* window, int w, int h) {
 // ─── Initialization ──────────────────────────────────────────────────
 
 static bool initGL() {
-    gVisibleProgram = createProgram("shaders/pointcloud.vert", "shaders/pointcloud.frag");
-    gPickingProgram = createProgram("shaders/picking.vert", "shaders/picking.frag");
+    std::string sd = gResourcesDir + "/shaders/";
+    gVisibleProgram = createProgram(sd + "pointcloud.vert", sd + "pointcloud.frag");
+    gPickingProgram = createProgram(sd + "picking.vert", sd + "picking.frag");
     if (!gVisibleProgram || !gPickingProgram) return false;
 
     glGenVertexArrays(1, &gVAO);
@@ -1836,6 +1926,10 @@ static bool initGL() {
 int main(int argc, char** argv) {
     fprintf(stderr, "COSMOS Galaxy Explorer (C++/OpenGL)\n");
     fprintf(stderr, "===================================\n\n");
+
+    // Resolve resource directory (works inside .app bundle or next to exe)
+    gResourcesDir = getResourcesDir();
+    fprintf(stderr, "Resources: %s\n", gResourcesDir.c_str());
 
     if (!glfwInit()) {
         fprintf(stderr, "ERROR: Failed to initialize GLFW\n");
@@ -1878,15 +1972,16 @@ int main(int argc, char** argv) {
     gWinHeight = winH;
     fprintf(stderr, "Window: %dx%d (pixel ratio: %.1f)\n\n", winW, winH, gPixelRatio);
 
-    // Load data
-    if (!loadGalaxyData("data/galaxy_viz_data.json")) {
+    // Load data (resolve paths from resources directory)
+    std::string dataDir = gResourcesDir + "/data/";
+    if (!loadGalaxyData(dataDir + "galaxy_viz_data.json")) {
         fprintf(stderr, "ERROR: Failed to load galaxy data\n");
         glfwTerminate();
         return 1;
     }
 
     // Load tags (optional, non-fatal if missing)
-    loadTagData("data/galaxy_tags.json");
+    loadTagData(dataDir + "galaxy_tags.json");
 
     // Init OpenGL resources
     if (!initGL()) {
