@@ -30,6 +30,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h>
 #define POPEN _popen
 #define PCLOSE _pclose
 #else
@@ -206,6 +207,45 @@ static ma_engine gAudioEngine;
 static bool gAudioInitialized = false;
 static ma_sound gCurrentSound;
 static bool gSoundLoaded = false;
+
+// Library path remapping
+static const std::string ORIGINAL_LIB_PREFIX = "/Volumes/Komplete Library/Datasets/dataset";
+static bool gRemapLibrary = false;
+static char gLibraryOverridePath[1024] = "";
+static std::string gConfigPath;  // set in main()
+
+static std::string resolveWavPath(const std::string& original) {
+    if (!gRemapLibrary || gLibraryOverridePath[0] == '\0') return original;
+    if (original.rfind(ORIGINAL_LIB_PREFIX, 0) == 0) {
+        std::string resolved = std::string(gLibraryOverridePath) + original.substr(ORIGINAL_LIB_PREFIX.size());
+#ifdef _WIN32
+        for (char& c : resolved) { if (c == '/') c = '\\'; }
+#endif
+        return resolved;
+    }
+    return original;
+}
+
+static void saveLibraryConfig() {
+    FILE* f = fopen(gConfigPath.c_str(), "w");
+    if (f) {
+        fprintf(f, "%d\n%s\n", gRemapLibrary ? 1 : 0, gLibraryOverridePath);
+        fclose(f);
+    }
+}
+
+static void loadLibraryConfig() {
+    FILE* f = fopen(gConfigPath.c_str(), "r");
+    if (f) {
+        int remap = 0;
+        if (fscanf(f, "%d\n", &remap) == 1) gRemapLibrary = (remap != 0);
+        if (fgets(gLibraryOverridePath, sizeof(gLibraryOverridePath), f)) {
+            size_t len = strlen(gLibraryOverridePath);
+            if (len > 0 && gLibraryOverridePath[len-1] == '\n') gLibraryOverridePath[len-1] = '\0';
+        }
+        fclose(f);
+    }
+}
 
 // Visibility / filtering
 static bool gShowOneshots = true;
@@ -1659,6 +1699,64 @@ static void renderImGuiUI() {
         ImGui::PopStyleVar();
     }
 
+    // ─── Library Path Remap (bottom-right settings) ────────────
+    {
+        float settingsW = 340.0f;
+        ImGui::SetNextWindowPos(ImVec2((float)gWinWidth - 16.0f, (float)gWinHeight - 40.0f), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+        ImGui::SetNextWindowSize(ImVec2(settingsW, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 8));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.09f, 0.11f, 0.92f));
+        ImGui::Begin("##libsettings", nullptr,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing);
+
+        if (ImGui::Checkbox("Remap Library Path", &gRemapLibrary)) {
+            saveLibraryConfig();
+        }
+        if (gRemapLibrary) {
+            ImGui::PushItemWidth(settingsW - 90.0f);
+            if (ImGui::InputTextWithHint("##libpath", "/Users/you/Downloads/dataset", gLibraryOverridePath, sizeof(gLibraryOverridePath))) {
+                saveLibraryConfig();
+            }
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Browse")) {
+#ifdef _WIN32
+                char folderPath[MAX_PATH] = {0};
+                BROWSEINFOA bi = {};
+                bi.lpszTitle = "Select sample library folder";
+                bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+                LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+                if (pidl) {
+                    if (SHGetPathFromIDListA(pidl, folderPath)) {
+                        strncpy(gLibraryOverridePath, folderPath, sizeof(gLibraryOverridePath) - 1);
+                        size_t len = strlen(gLibraryOverridePath);
+                        if (len > 1 && gLibraryOverridePath[len-1] == '\\') gLibraryOverridePath[len-1] = '\0';
+                        saveLibraryConfig();
+                    }
+                    CoTaskMemFree(pidl);
+                }
+#elif __APPLE__
+                FILE* fp = popen("osascript -e 'POSIX path of (choose folder with prompt \"Select sample library folder\")' 2>/dev/null", "r");
+                if (fp) {
+                    if (fgets(gLibraryOverridePath, sizeof(gLibraryOverridePath), fp)) {
+                        size_t len = strlen(gLibraryOverridePath);
+                        if (len > 0 && gLibraryOverridePath[len-1] == '\n') gLibraryOverridePath[len-1] = '\0';
+                        len = strlen(gLibraryOverridePath);
+                        if (len > 1 && gLibraryOverridePath[len-1] == '/') gLibraryOverridePath[len-1] = '\0';
+                        saveLibraryConfig();
+                    }
+                    pclose(fp);
+                }
+#endif
+            }
+        }
+
+        ImGui::End();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+    }
+
     // ─── Help hint (bottom-right) ────────────────────────────────
     {
         ImGui::SetNextWindowPos(ImVec2((float)gWinWidth - 16.0f, (float)gWinHeight - 16.0f), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
@@ -1736,7 +1834,7 @@ static void onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                 if (it != gIdToIndex.end()) {
                     const GalaxyPoint& p = gPoints[it->second];
                     if (!p.wavPath.empty()) {
-                        playSound(p.wavPath);
+                        playSound(resolveWavPath(p.wavPath));
                     }
                 }
             } else {
@@ -1755,7 +1853,7 @@ static void onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                     auto it = gIdToIndex.find(id);
                     if (it != gIdToIndex.end()) {
                         const GalaxyPoint& p = gPoints[it->second];
-                        if (!p.wavPath.empty()) playSound(p.wavPath);
+                        if (!p.wavPath.empty()) playSound(resolveWavPath(p.wavPath));
                     }
                 } else {
                     gSelectedId = -1;
@@ -1795,7 +1893,7 @@ static void onCursorPos(GLFWwindow* window, double mx, double my) {
             if (it != gIdToIndex.end()) {
                 const GalaxyPoint& p = gPoints[it->second];
                 if (!p.wavPath.empty()) {
-                    playSound(p.wavPath);
+                    playSound(resolveWavPath(p.wavPath));
                 }
             }
         }
@@ -1930,6 +2028,12 @@ int main(int argc, char** argv) {
     // Resolve resource directory (works inside .app bundle or next to exe)
     gResourcesDir = getResourcesDir();
     fprintf(stderr, "Resources: %s\n", gResourcesDir.c_str());
+
+    gConfigPath = gResourcesDir + "/library_path.cfg";
+    loadLibraryConfig();
+    if (gRemapLibrary && gLibraryOverridePath[0] != '\0') {
+        fprintf(stderr, "Library remap ON: %s\n", gLibraryOverridePath);
+    }
 
     if (!glfwInit()) {
         fprintf(stderr, "ERROR: Failed to initialize GLFW\n");

@@ -1,0 +1,11 @@
+COSMOS_Models_Data_Folders_IID:
+    name: COSMOS__Models_Data_Folders
+    version: 2.0.0.4
+    install_sources:
+        - /Common/Data/Models
+    install_folders:
+        - $(WAVES_DIR)/Data
+    actions:
+        post_copy:
+            - $(Set_Specific_Folder_Icon<$(WAVES_DIR)/Data>)
+        remove_item: ~

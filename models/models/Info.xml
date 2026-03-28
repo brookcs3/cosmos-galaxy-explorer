@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone="yes"?>
+<DataInfoDefault>
+    <PackageName>Models</PackageName>
+    <Version>3.0.0.1</Version>
+    <CompanyInfo>
+        <string ID="0">http://www.waves.com</string>
+        <string ID="1">U.S. 1-865-909-9200</string>
+        <string ID="2">Worldwide +972-3-608-4000</string>
+        <string ID="3">Legal notices: http://www.waves.com/legal/legal-notices</string>
+    </CompanyInfo>
+</DataInfoDefault>

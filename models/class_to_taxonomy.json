@@ -1,0 +1,356 @@
+{
+  "0": {
+    "instrument_id": 100,
+    "name": "Double Bass",
+    "family_id": 98,
+    "family": "Strings"
+  },
+  "1": {
+    "instrument_id": 2,
+    "name": "Bass Guitar",
+    "family_id": 1,
+    "family": "Bass"
+  },
+  "2": {
+    "instrument_id": 76,
+    "name": "Bell",
+    "family_id": 75,
+    "family": "Percussion"
+  },
+  "3": {
+    "instrument_id": 72,
+    "name": "Marimba",
+    "family_id": 65,
+    "family": "Mallet"
+  },
+  "4": {
+    "instrument_id": 73,
+    "name": "Vibraphone",
+    "family_id": 65,
+    "family": "Mallet"
+  },
+  "5": {
+    "instrument_id": 74,
+    "name": "Xylophone",
+    "family_id": 65,
+    "family": "Mallet"
+  },
+  "6": {
+    "instrument_id": 7,
+    "name": "Bassoon",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "7": {
+    "instrument_id": 10,
+    "name": "Ensemble",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "8": {
+    "instrument_id": 8,
+    "name": "Clarinet",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "9": {
+    "instrument_id": 11,
+    "name": "Flute",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "10": {
+    "instrument_id": 13,
+    "name": "Horn",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "11": {
+    "instrument_id": 14,
+    "name": "Oboe",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "12": {
+    "instrument_id": 15,
+    "name": "Saxophone",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "13": {
+    "instrument_id": 16,
+    "name": "Trombone",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "14": {
+    "instrument_id": 17,
+    "name": "Trumpet",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "15": {
+    "instrument_id": 18,
+    "name": "Tuba",
+    "family_id": 6,
+    "family": "Brass & Wind"
+  },
+  "16": {
+    "instrument_id": 44,
+    "name": "Machine",
+    "family_id": 36,
+    "family": "FX"
+  },
+  "17": {
+    "instrument_id": 106,
+    "name": "Lead",
+    "family_id": 104,
+    "family": "Synth"
+  },
+  "18": {
+    "instrument_id": 107,
+    "name": "Pad",
+    "family_id": 104,
+    "family": "Synth"
+  },
+  "19": {
+    "instrument_id": 4,
+    "name": "Synth Bass",
+    "family_id": 1,
+    "family": "Bass"
+  },
+  "20": {
+    "instrument_id": 3,
+    "name": "Sub",
+    "family_id": 1,
+    "family": "Bass"
+  },
+  "21": {
+    "instrument_id": 48,
+    "name": "Texture",
+    "family_id": 36,
+    "family": "FX"
+  },
+  "22": {
+    "instrument_id": 28,
+    "name": "Kick",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "23": {
+    "instrument_id": 28,
+    "name": "Kick",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "24": {
+    "instrument_id": 28,
+    "name": "Kick",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "25": {
+    "instrument_id": 28,
+    "name": "Kick",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "26": {
+    "instrument_id": 34,
+    "name": "Clap",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "27": {
+    "instrument_id": 81,
+    "name": "Cowbell",
+    "family_id": 75,
+    "family": "Percussion"
+  },
+  "28": {
+    "instrument_id": 20,
+    "name": "Cymbals",
+    "family_id": null,
+    "family": null
+  },
+  "29": {
+    "instrument_id": 24,
+    "name": "Hi-hat",
+    "family_id": 20,
+    "family": "Cymbals"
+  },
+  "30": {
+    "instrument_id": 37,
+    "name": "Ambience",
+    "family_id": 36,
+    "family": "FX"
+  },
+  "31": {
+    "instrument_id": 24,
+    "name": "Hi-hat",
+    "family_id": 20,
+    "family": "Cymbals"
+  },
+  "32": {
+    "instrument_id": 75,
+    "name": "Percussion",
+    "family_id": null,
+    "family": null
+  },
+  "33": {
+    "instrument_id": 89,
+    "name": "Shaker",
+    "family_id": 75,
+    "family": "Percussion"
+  },
+  "34": {
+    "instrument_id": 30,
+    "name": "Rim",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "35": {
+    "instrument_id": 31,
+    "name": "Snare",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "36": {
+    "instrument_id": 31,
+    "name": "Snare",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "37": {
+    "instrument_id": 31,
+    "name": "Snare",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "38": {
+    "instrument_id": 31,
+    "name": "Snare",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "39": {
+    "instrument_id": 93,
+    "name": "Tambourine",
+    "family_id": 75,
+    "family": "Percussion"
+  },
+  "40": {
+    "instrument_id": 32,
+    "name": "Tom",
+    "family_id": 27,
+    "family": "Drums"
+  },
+  "41": {
+    "instrument_id": 68,
+    "name": "Piano",
+    "family_id": 61,
+    "family": "Keys"
+  },
+  "42": {
+    "instrument_id": 64,
+    "name": "Electric Piano",
+    "family_id": 61,
+    "family": "Keys"
+  },
+  "43": {
+    "instrument_id": 62,
+    "name": "Accordion",
+    "family_id": 61,
+    "family": "Keys"
+  },
+  "44": {
+    "instrument_id": 41,
+    "name": "Foley",
+    "family_id": 36,
+    "family": "FX"
+  },
+  "45": {
+    "instrument_id": 50,
+    "name": "Acoustic Guitar",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "46": {
+    "instrument_id": 54,
+    "name": "Electric Guitar",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "47": {
+    "instrument_id": 54,
+    "name": "Electric Guitar",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "48": {
+    "instrument_id": 54,
+    "name": "Electric Guitar",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "49": {
+    "instrument_id": 52,
+    "name": "Classic Guitar",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "50": {
+    "instrument_id": 51,
+    "name": "Banjo",
+    "family_id": 49,
+    "family": "Guitar"
+  },
+  "51": {
+    "instrument_id": 99,
+    "name": "Cello",
+    "family_id": 98,
+    "family": "Strings"
+  },
+  "52": {
+    "instrument_id": 98,
+    "name": "Strings",
+    "family_id": null,
+    "family": null
+  },
+  "53": {
+    "instrument_id": 102,
+    "name": "Viola",
+    "family_id": 98,
+    "family": "Strings"
+  },
+  "54": {
+    "instrument_id": 103,
+    "name": "Violin",
+    "family_id": 98,
+    "family": "Strings"
+  },
+  "55": {
+    "instrument_id": 114,
+    "name": "Choir",
+    "family_id": 111,
+    "family": "Vocal"
+  },
+  "56": {
+    "instrument_id": 116,
+    "name": "Female",
+    "family_id": 111,
+    "family": "Vocal"
+  },
+  "57": {
+    "instrument_id": 121,
+    "name": "Vocoder",
+    "family_id": 111,
+    "family": "Vocal"
+  },
+  "58": {
+    "instrument_id": 117,
+    "name": "Male",
+    "family_id": 111,
+    "family": "Vocal"
+  }
+}

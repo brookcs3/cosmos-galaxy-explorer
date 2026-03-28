@@ -2,5 +2,3 @@ cosmos
 *.o
 *.dSYM/
 .DS_Store
-crashreport/
-compile_flags.txt
