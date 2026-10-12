@@ -114,4 +114,4 @@ Injected points are in-memory only — they are not written to the data file.
 
 ## License
 
-Internal tool — not for redistribution.
+For research use only — not for redistribution.
